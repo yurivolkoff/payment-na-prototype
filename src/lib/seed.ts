@@ -82,6 +82,17 @@ export function buildFullDocSet(): PaymentDoc[] {
 /** Итог полной корзины: 14 587,06 ₽. */
 export const FULL_BASKET_TOTAL = 14587.06;
 
+/** Курскэнергосбыт — демонстрационный «находимый» счёт по электроснабжению. */
+export function buildKurskenergoDoc(account = '770050010101'): PaymentDoc {
+  return {
+    id: nextDocId(),
+    org: 'ПАО «Курскэнергосбыт»',
+    account,
+    service: 'Электроснабжение',
+    amount: 2143.7,
+  };
+}
+
 // ─── Поиск счёта по номеру (блок «Оплатить несколько счетов» на Экране 2) ────
 
 /**
@@ -100,15 +111,24 @@ export function findDocByAccount(account: string): PaymentDoc | null {
   }
   // Демонстрационный «находимый» счёт — Курскэнергосбыт.
   if (a === '770050010101' || a === '7700500101') {
-    return {
-      id: nextDocId(),
-      org: 'ПАО «Курскэнергосбыт»',
-      account: a,
-      service: 'Электроснабжение',
-      amount: 2143.7,
-    };
+    return buildKurskenergoDoc(a);
   }
   return null;
+}
+
+/**
+ * Поиск счёта по номеру ЛС на Главной.
+ * Известные номера дают конкретный счёт; неизвестный → null (инлайн-ошибка).
+ * Не подставляет Газпром на любой ввод.
+ */
+export function findHomeDocByAccount(account: string): PaymentDoc | null {
+  const a = account.trim();
+  // Газпром — основной находимый счёт макета.
+  if (a === '101001090') {
+    return buildGazpromDoc(a);
+  }
+  // Остальные находимые номера — общий мок поиска по номеру.
+  return findDocByAccount(a);
 }
 
 // ─── Поиск по организации (Экран 3) ─────────────────────────────────────────

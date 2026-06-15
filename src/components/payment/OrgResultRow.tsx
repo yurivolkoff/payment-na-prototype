@@ -17,14 +17,14 @@ export function OrgResultRow({ org, onClick }: OrgResultRowProps): React.ReactEl
         style={{ color: 'var(--color-text-muted)', marginTop: 2 }}
       />
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-text-primary)' }}>
+        <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-text-primary)' }}>
           {org.name}
         </div>
-        <div className="num-mono" style={{ marginTop: 4, fontSize: 13, color: 'var(--color-text-secondary)' }}>
-          ОГРН {org.ogrn}; ИНН {org.inn}; КПП {org.kpp}
-        </div>
-        <div style={{ marginTop: 2, fontSize: 13, color: 'var(--color-text-secondary)' }}>
+        <div style={{ marginTop: 4, fontSize: 14, color: 'var(--color-text-secondary)' }}>
           {org.address}
+        </div>
+        <div className="num-mono" style={{ marginTop: 2, fontSize: 12, color: 'var(--color-text-muted)' }}>
+          ИНН {org.inn}
         </div>
       </div>
       <Icon

@@ -7,20 +7,34 @@ import { TextInput } from '../components/ui/TextInput';
 import { BackLink } from '../components/ui/BackLink';
 import { OrgResultRow } from '../components/payment/OrgResultRow';
 import { searchOrgs } from '../lib/seed';
+import { useStore } from '../lib/store';
 import type { OrgResult } from '../lib/types';
 
 export function OrgSearchScreen(): React.ReactElement {
   const navigate = useNavigate();
+  const session = useStore((s) => s.session);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<OrgResult[]>(searchOrgs(''));
+  const [isSearching, setIsSearching] = useState(false);
 
   const onSearch = () => {
-    setResults(searchOrgs(query));
+    if (isSearching) return;
+    setIsSearching(true);
+    try {
+      setResults(searchOrgs(query));
+    } finally {
+      setIsSearching(false);
+    }
   };
+
+  const apartmentTitle = session.address?.apartmentTitle ?? 'Квартира';
 
   return (
     <GuestShell>
       <BackLink onClick={() => navigate('/oplata')} />
+      <div style={{ marginTop: 8, fontSize: 14, color: 'var(--color-text-secondary)' }}>
+        Оплата · {apartmentTitle} → Добавить счёт
+      </div>
       <h1 className="screen-title" style={{ fontSize: 40 }}>
         Поиск счетов по организации
       </h1>
@@ -38,7 +52,7 @@ export function OrgSearchScreen(): React.ReactElement {
               }}
             />
           </div>
-          <Button variant="primary" onClick={onSearch} style={{ height: 48 }}>
+          <Button variant="primary" onClick={onSearch} disabled={isSearching} style={{ height: 48 }}>
             Найти
           </Button>
         </div>

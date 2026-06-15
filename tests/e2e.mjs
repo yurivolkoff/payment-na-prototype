@@ -253,7 +253,7 @@ async function main() {
     '9.2 — Карточка профиля с адресом'
   );
   const cacheCard = page.getByRole('heading', { name: 'Оплатить снова' }).locator('xpath=ancestor::*[1]');
-  await cacheCard.getByRole('button', { name: 'Оплатить' }).first().click();
+  await cacheCard.getByRole('button', { name: 'Перейти к оплате' }).first().click();
   await page.waitForURL(/\/oplata/);
   await page.waitForTimeout(200);
   await expect(
@@ -263,14 +263,115 @@ async function main() {
     '9.3 — Полный набор счетов восстановлен из кэша'
   );
 
+  // 9.5 — Карточка кэша честно подписывает прошлую сумму («В прошлый раз»).
   await page.goto(BASE_URL + '/');
   await page.waitForTimeout(200);
+  await expect(
+    await page.getByText('В прошлый раз:', { exact: false }).first().isVisible(),
+    '9.5 — Подпись «В прошлый раз» в карточке кэша'
+  );
+
+  // 9.4 — [Удалить] просит подтверждение через модалку, затем убирает профиль.
   const cacheCard2 = page.getByRole('heading', { name: 'Оплатить снова' }).locator('xpath=ancestor::*[1]');
-  await cacheCard2.getByRole('button', { name: 'Удалить' }).first().click();
+  await cacheCard2.getByRole('button', { name: 'Удалить сохранённые счета' }).first().click();
+  await page.waitForTimeout(200);
+  await expect(
+    await page.getByRole('heading', { name: 'Удалить сохранённые счета?' }).isVisible(),
+    '9.4a — Модалка подтверждения удаления'
+  );
+  // Профиль ещё на месте, пока не подтвердили.
+  await expect(
+    await page.getByRole('heading', { name: 'Оплатить снова' }).isVisible(),
+    '9.4b — Профиль сохраняется до подтверждения'
+  );
+  await page.getByRole('button', { name: 'Удалить', exact: true }).click();
   await page.waitForTimeout(200);
   await expect(
     !(await page.getByRole('heading', { name: 'Оплатить снова' }).isVisible().catch(() => false)),
-    '9.4 — [Удалить] убирает профиль'
+    '9.4c — Подтверждение удаления убирает профиль'
+  );
+
+  // ─── 10. Главная: «не найдено» по неизвестному ЛС (без перехода) ─────────
+  await page.goto(BASE_URL + '/');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await page.getByLabel('Адрес квартиры').fill('Квартира 48, г. Курск, ул. Гайдара, д. 5');
+  await page.getByLabel('Номер лицевого счёта').fill('999999999');
+  await page.getByRole('button', { name: 'Найти' }).click();
+  await page.waitForTimeout(250);
+  await expect(
+    await page.getByText('Счёт не найден. Проверьте номер или укажите организацию').isVisible(),
+    '10.1 — Неизвестный ЛС → инлайн-ошибка'
+  );
+  await expect(
+    page.url().endsWith('/') || !page.url().includes('/oplata'),
+    '10.2 — Нет перехода на Оплату при «не найдено»',
+    `url=${page.url()}`
+  );
+
+  // ─── 11. Дедуп: повторное добавление того же ЛС не дублирует ─────────────
+  await page.getByLabel('Номер лицевого счёта').fill('101001090');
+  await page.getByRole('button', { name: 'Найти' }).click();
+  await page.waitForURL(/\/oplata/);
+  await page.waitForTimeout(200);
+  await page.getByLabel('Номер лицевого счёта').fill('770050010101');
+  await page.getByRole('button', { name: 'Найти счёт' }).click();
+  await page.waitForTimeout(200);
+  const energoCount1 = await page.getByText('ПАО «Курскэнергосбыт»').count();
+  await page.getByLabel('Номер лицевого счёта').fill('770050010101');
+  await page.getByRole('button', { name: 'Найти счёт' }).click();
+  await page.waitForTimeout(200);
+  const energoCount2 = await page.getByText('ПАО «Курскэнергосбыт»').count();
+  await expect(
+    energoCount1 === energoCount2 && energoCount1 >= 1,
+    '11.1 — Повторный тот же ЛС не дублирует счёт',
+    `before=${energoCount1} after=${energoCount2}`
+  );
+  await expect(
+    await page.getByText('Этот счёт уже добавлен').isVisible(),
+    '11.2 — Инлайн-сообщение «Этот счёт уже добавлен»'
+  );
+
+  // ─── 12. Trust-сигнал у оплаты ───────────────────────────────────────────
+  await expect(
+    await page
+      .locator('.pay-summary')
+      .getByText('Оплата через банк-эквайер ВБРР', { exact: false })
+      .isVisible(),
+    '12.1 — Trust-строка под [Оплатить]'
+  );
+  await expect(
+    await page.locator('.pay-summary').getByText('К оплате', { exact: true }).isVisible(),
+    '12.2 — Честная подпись суммы «К оплате»'
+  );
+
+  // ─── 13. Под-начисления — расшифровка, не платёжная строка ───────────────
+  await page.getByLabel('Номер лицевого счёта').fill('1022345701 23');
+  await page.getByRole('button', { name: 'Найти счёт' }).click();
+  await page.waitForTimeout(200);
+  await expect(
+    await page.getByText('В том числе', { exact: true }).first().isVisible(),
+    '13.1 — Подпись «В том числе» у под-начислений'
+  );
+  // Контейнер расшифровки «В том числе» (ближайший .doc-row).
+  const breakdown = page
+    .getByText('В том числе', { exact: true })
+    .first()
+    .locator('xpath=ancestor::div[contains(@class,"doc-row")][1]');
+  await expect(
+    await breakdown.getByText('ООО «ЕИРКЦ»', { exact: true }).isVisible(),
+    '13.2 — ЕИРКЦ показан как расшифровка внутри «В том числе»'
+  );
+  // Под-начисление не имеет собственного чекбокса (не отдельный платёж).
+  await expect(
+    (await breakdown.locator('.cb-input').count()) === 0,
+    '13.3 — У под-начислений нет чекбоксов (не платёжные строки)'
+  );
+  // Суммы под-начислений — не .amount-pill (обычный текст).
+  await expect(
+    (await breakdown.locator('.amount-pill').count()) === 0,
+    '13.4 — Суммы под-начислений — не amount-pill'
   );
 
   // ─── FINAL ───────────────────────────────────────────────────────────────

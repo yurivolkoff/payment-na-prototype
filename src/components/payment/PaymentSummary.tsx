@@ -9,6 +9,28 @@ export interface PaymentSummaryProps {
   onPay: () => void;
 }
 
+/** Маленькая иконка-замок (inline SVG, наследует currentColor). */
+function LockGlyph(): React.ReactElement {
+  return (
+    <svg
+      width="13"
+      height="13"
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      style={{ flexShrink: 0 }}
+    >
+      <rect x="3" y="7" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 /** Sticky-сайдбар «К оплате» + [Оплатить]. */
 export function PaymentSummary({ total, selectedCount, onPay }: PaymentSummaryProps): React.ReactElement {
   const disabled = selectedCount === 0;
@@ -16,7 +38,7 @@ export function PaymentSummary({ total, selectedCount, onPay }: PaymentSummaryPr
     <div className="pay-summary">
       <Card padding={24}>
         <div style={{ fontSize: 14, color: 'var(--color-text-secondary)', lineHeight: 1.35 }}>
-          К оплате с учётом задолженности и переплаты
+          К оплате
         </div>
         <div
           className="num-mono"
@@ -38,6 +60,20 @@ export function PaymentSummary({ total, selectedCount, onPay }: PaymentSummaryPr
             Выберите хотя бы один счёт для оплаты
           </div>
         )}
+        <div
+          style={{
+            marginTop: 14,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 12,
+            lineHeight: 1.4,
+            color: 'var(--color-text-muted)',
+          }}
+        >
+          <LockGlyph />
+          <span>Оплата через банк-эквайер ВБРР · защищённое соединение</span>
+        </div>
       </Card>
     </div>
   );

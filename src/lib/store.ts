@@ -25,6 +25,13 @@ function persistProfiles(profiles: SavedProfile[]): void {
   }
 }
 
+/** Ключ дедупликации счёта: нормализованный ЛС (без пробелов) + организация. */
+function normalizeDocKey(org: string, account: string): string {
+  const normAccount = account.replace(/\s+/g, '');
+  const normOrg = org.trim().toLowerCase();
+  return `${normOrg}::${normAccount}`;
+}
+
 // ─── Состояние текущей платёжной сессии (Экран 2) ────────────────────────────
 
 interface PaymentSession {
@@ -47,8 +54,12 @@ interface StoreState {
   startSession: (address: AddressInfo, docs: PaymentDoc[]) => void;
   /** Восстановить сессию из сохранённого профиля (кэш). */
   restoreFromProfile: (profileId: string) => void;
-  /** Добавить документ в текущую сессию (по номеру или из карточки организации). */
-  addDoc: (doc: PaymentDoc) => void;
+  /**
+   * Добавить документ в текущую сессию (по номеру или из карточки организации).
+   * Дедуп: если счёт с тем же нормализованным ЛС и той же организацией уже есть —
+   * не добавляет и возвращает false. Иначе добавляет и возвращает true.
+   */
+  addDoc: (doc: PaymentDoc) => boolean;
   /** Переключить выбор документа. */
   toggleSelected: (docId: string) => void;
   /** Итоговая сумма выбранных документов. */
@@ -91,14 +102,22 @@ export const useStore = create<StoreState>((set, get) => ({
     set({ session: { address: profile.address, period: PERIOD, docs, selected } });
   },
 
-  addDoc: (doc) =>
+  addDoc: (doc) => {
+    const { session } = get();
+    const key = normalizeDocKey(doc.org, doc.account);
+    const exists = session.docs.some(
+      (d) => normalizeDocKey(d.org, d.account) === key
+    );
+    if (exists) return false;
     set((s) => ({
       session: {
         ...s.session,
         docs: [...s.session.docs, doc],
         selected: { ...s.session.selected, [doc.id]: !doc.notIssued },
       },
-    })),
+    }));
+    return true;
+  },
 
   toggleSelected: (docId) =>
     set((s) => {

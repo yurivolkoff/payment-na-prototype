@@ -4,9 +4,10 @@ import { GuestShell } from '../components/layout/GuestShell';
 import { Card } from '../components/ui/Card';
 import { TextInput } from '../components/ui/TextInput';
 import { Button } from '../components/ui/Button';
+import { Modal } from '../components/ui/Modal';
 import { SavedPaymentCard } from '../components/payment/SavedPaymentCard';
 import { useStore } from '../lib/store';
-import { buildGazpromDoc } from '../lib/seed';
+import { findHomeDocByAccount } from '../lib/seed';
 import type { AddressInfo } from '../lib/types';
 
 const LS_HELPER =
@@ -20,11 +21,19 @@ function hasApartment(address: string): boolean {
   return /кв\.?\s*№?\s*\d+|квартир|пом\.?\s*№?\s*\d+|помещени/.test(a);
 }
 
-/** Извлечь короткую подпись квартиры и адрес без квартиры. */
+/** Извлечь короткую подпись квартиры/помещения и адрес без неё. */
 function parseAddress(raw: string): AddressInfo {
   const full = raw.trim();
-  const m = full.match(/(кв\.?\s*№?\s*\d+|квартира\s*№?\s*\d+)/i);
-  const aptTitle = m ? `Квартира ${(m[0].match(/\d+/) || [''])[0]}` : 'Квартира';
+  // Синхронизировано с hasApartment: ловим «кв./квартира N» и «пом./помещение N».
+  const m = full.match(
+    /(кв\.?\s*№?\s*\d+|квартира\s*№?\s*\d+|пом\.?\s*№?\s*\d+|помещение\s*№?\s*\d+)/i
+  );
+  let aptTitle = 'Квартира';
+  if (m) {
+    const num = (m[0].match(/\d+/) || [''])[0];
+    const isPom = /^пом|^помещ/i.test(m[0].trim());
+    aptTitle = `${isPom ? 'Помещение' : 'Квартира'} ${num}`;
+  }
   const street = m ? full.replace(m[0], '').replace(/^[\s,]+|[\s,]+$/g, '') : full;
   return { full, apartmentTitle: aptTitle, street };
 }
@@ -40,31 +49,45 @@ export function HomeScreen(): React.ReactElement {
   const [account, setAccount] = useState('');
   const [addressError, setAddressError] = useState<string | null>(null);
   const [accountError, setAccountError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const onFind = () => {
-    let ok = true;
-    if (address.trim().length === 0) {
-      setAddressError('Укажите адрес квартиры');
-      ok = false;
-    } else if (!hasApartment(address)) {
-      setAddressError('Добавьте номер квартиры в адрес');
-      ok = false;
-    } else {
-      setAddressError(null);
+    if (isPending) return;
+    setIsPending(true);
+    try {
+      let ok = true;
+      if (address.trim().length === 0) {
+        setAddressError('Укажите адрес квартиры');
+        ok = false;
+      } else if (!hasApartment(address)) {
+        setAddressError('Добавьте номер квартиры в адрес');
+        ok = false;
+      } else {
+        setAddressError(null);
+      }
+
+      if (account.trim().length === 0) {
+        setAccountError('Укажите номер лицевого счёта');
+        ok = false;
+      } else {
+        setAccountError(null);
+      }
+
+      if (!ok) return;
+
+      const doc = findHomeDocByAccount(account.trim());
+      if (!doc) {
+        setAccountError('Счёт не найден. Проверьте номер или укажите организацию');
+        return;
+      }
+
+      const addr = parseAddress(address);
+      startSession(addr, [doc]);
+      navigate('/oplata');
+    } finally {
+      setIsPending(false);
     }
-
-    if (account.trim().length === 0) {
-      setAccountError('Укажите номер лицевого счёта');
-      ok = false;
-    } else {
-      setAccountError(null);
-    }
-
-    if (!ok) return;
-
-    const addr = parseAddress(address);
-    startSession(addr, [buildGazpromDoc(account.trim())]);
-    navigate('/oplata');
   };
 
   return (
@@ -135,7 +158,13 @@ export function HomeScreen(): React.ReactElement {
             onChange={(e) => setAddress(e.target.value)}
           />
         </div>
-        <Button variant="primary" size="lg" onClick={onFind} style={{ marginTop: 24 }}>
+        <Button
+          variant="primary"
+          size="lg"
+          onClick={onFind}
+          disabled={isPending}
+          style={{ marginTop: 24 }}
+        >
           Найти
         </Button>
       </Card>
@@ -156,12 +185,41 @@ export function HomeScreen(): React.ReactElement {
                   restoreFromProfile(p.id);
                   navigate('/oplata');
                 }}
-                onDelete={() => deleteProfile(p.id)}
+                onDelete={() => setDeleteId(p.id)}
               />
             ))}
           </div>
         </Card>
       )}
+
+      <Modal
+        open={deleteId !== null}
+        onClose={() => setDeleteId(null)}
+        title="Удалить сохранённые счета?"
+        disableOverlayClose
+        width={440}
+        footer={
+          <>
+            <Button
+              variant="primary"
+              onClick={() => {
+                if (deleteId) deleteProfile(deleteId);
+                setDeleteId(null);
+              }}
+            >
+              Удалить
+            </Button>
+            <Button variant="secondary" onClick={() => setDeleteId(null)}>
+              Отмена
+            </Button>
+          </>
+        }
+      >
+        <div style={{ fontSize: 15, lineHeight: 1.5, color: 'var(--color-text-secondary)' }}>
+          Набор счетов по этой квартире сохранён на этом устройстве. После удаления блок «Оплатить
+          снова» исчезнет — счета нужно будет добавить заново.
+        </div>
+      </Modal>
 
       {/* Полезные статьи (декоративно) */}
       <h2 style={{ margin: '8px 0 16px', fontSize: 28, fontWeight: 600 }}>Полезные статьи</h2>

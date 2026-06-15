@@ -21,6 +21,7 @@ export function OrgCardScreen(): React.ReactElement {
 
   const [account, setAccount] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
 
   // Без сессии (адреса с Главной) — на Главную.
   useEffect(() => {
@@ -32,17 +33,32 @@ export function OrgCardScreen(): React.ReactElement {
   const addr = session.address;
 
   const onContinue = () => {
-    if (account.trim().length === 0) {
-      setError('Укажите номер лицевого счёта');
-      return;
+    if (isPending) return;
+    setIsPending(true);
+    try {
+      if (account.trim().length === 0) {
+        setError('Укажите номер лицевого счёта');
+        return;
+      }
+      const added = addDoc({ ...org.doc, id: nextDocId(), account: account.trim() });
+      if (!added) {
+        setError('Этот счёт уже добавлен');
+        return;
+      }
+      navigate('/oplata');
+    } finally {
+      setIsPending(false);
     }
-    addDoc({ ...org.doc, id: nextDocId(), account: account.trim() });
-    navigate('/oplata');
   };
+
+  const apartmentTitle = addr.apartmentTitle;
 
   return (
     <GuestShell>
       <BackLink onClick={() => navigate('/poisk-organizacii')} />
+      <div style={{ marginTop: 8, fontSize: 14, color: 'var(--color-text-secondary)' }}>
+        Оплата · {apartmentTitle} → Добавить счёт
+      </div>
       <h1 className="screen-title" style={{ fontSize: 48 }}>
         {org.name}
       </h1>
@@ -66,7 +82,7 @@ export function OrgCardScreen(): React.ReactElement {
           />
         </div>
 
-        <Button variant="primary" onClick={onContinue} style={{ marginTop: 24 }}>
+        <Button variant="primary" onClick={onContinue} disabled={isPending} style={{ marginTop: 24 }}>
           Продолжить
         </Button>
       </Card>

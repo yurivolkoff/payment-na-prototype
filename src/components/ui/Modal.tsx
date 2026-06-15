@@ -26,6 +26,7 @@ export function Modal({
   disableOverlayClose = false,
 }: ModalProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
   const previousActive = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -60,12 +61,9 @@ export function Modal({
       }
     };
     document.addEventListener('keydown', onKey);
-    // initial focus
+    // Начальный фокус — на заголовок диалога (а не на «Закрыть»/первую кнопку).
     setTimeout(() => {
-      const first = containerRef.current?.querySelector<HTMLElement>(
-        'input, textarea, select, button'
-      );
-      first?.focus();
+      headingRef.current?.focus();
     }, 10);
     document.body.style.overflow = 'hidden';
     return () => {
@@ -119,7 +117,11 @@ export function Modal({
           }}
         >
           <div style={{ flex: 1 }}>
-            <h3 style={{ margin: 0, fontSize: 22, fontWeight: 600, lineHeight: 1.2 }}>
+            <h3
+              ref={headingRef}
+              tabIndex={-1}
+              style={{ margin: 0, fontSize: 22, fontWeight: 600, lineHeight: 1.2, outline: 'none' }}
+            >
               {title}
             </h3>
             {subtitle && (

@@ -62,7 +62,7 @@ export function TopPromoBar() {
               const next = toggleHighContrast();
               useToastStore
                 .getState()
-                .show(next ? 'Включена версия для слабовидящих' : 'Версия для слабовидящих выключена');
+                .show(next ? 'Контрастная тема (демо) включена' : 'Контрастная тема (демо) выключена');
             }}
             style={{
               display: 'inline-flex',
@@ -72,7 +72,7 @@ export function TopPromoBar() {
             }}
           >
             <Icon name="16-actions-visually-impaired" size={16} />
-            Версия для слабовидящих
+            Контрастная тема (демо)
           </button>
           <button type="button" onClick={notImplemented} style={{ color: 'inherit' }}>
             Поддержка

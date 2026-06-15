@@ -6,6 +6,8 @@ export interface CheckboxProps {
   disabled?: boolean;
   /** Доступное имя для скринридеров / тестов. */
   ['aria-label']?: string;
+  /** id элемента с пояснением (напр. причина недоступности). */
+  ['aria-describedby']?: string;
 }
 
 /**
@@ -17,6 +19,7 @@ export function Checkbox({
   onChange,
   disabled = false,
   ['aria-label']: ariaLabel,
+  ['aria-describedby']: ariaDescribedby,
 }: CheckboxProps): React.ReactElement {
   return (
     <label
@@ -32,6 +35,7 @@ export function Checkbox({
         checked={checked}
         disabled={disabled}
         aria-label={ariaLabel}
+        aria-describedby={ariaDescribedby}
         onChange={(e) => onChange(e.target.checked)}
         style={{
           position: 'absolute',

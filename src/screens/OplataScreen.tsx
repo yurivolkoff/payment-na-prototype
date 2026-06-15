@@ -28,6 +28,8 @@ export function OplataScreen(): React.ReactElement {
   const [accountInput, setAccountInput] = useState('');
   const [findError, setFindError] = useState<string | null>(null);
   const [paidOpen, setPaidOpen] = useState(false);
+  const [isFinding, setIsFinding] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
 
   // Если зашли напрямую без сессии — вернуть на Главную.
   useEffect(() => {
@@ -38,27 +40,44 @@ export function OplataScreen(): React.ReactElement {
 
   const total = selectedTotal();
   const count = selectedCount();
+  // Итог всех начислений по квартире (справочно, в шапке карточки) — отличается от «К оплате».
+  const accruedTotal = session.docs.reduce((sum, d) => sum + d.amount, 0);
 
   const onFindAccount = () => {
-    const value = accountInput.trim();
-    if (value.length === 0) {
-      setFindError('Укажите номер лицевого счёта');
-      return;
+    if (isFinding) return;
+    setIsFinding(true);
+    try {
+      const value = accountInput.trim();
+      if (value.length === 0) {
+        setFindError('Укажите номер лицевого счёта');
+        return;
+      }
+      const doc = findDocByAccount(value);
+      if (!doc) {
+        setFindError('Счёт не найден. Проверьте номер или укажите организацию');
+        return;
+      }
+      const added = addDoc(doc);
+      if (!added) {
+        setFindError('Этот счёт уже добавлен');
+        return;
+      }
+      setAccountInput('');
+      setFindError(null);
+    } finally {
+      setIsFinding(false);
     }
-    const doc = findDocByAccount(value);
-    if (!doc) {
-      setFindError('Счёт не найден. Проверьте номер или укажите организацию');
-      return;
-    }
-    addDoc(doc);
-    setAccountInput('');
-    setFindError(null);
   };
 
   const onPay = () => {
-    if (count === 0) return;
-    savePaidProfile();
-    setPaidOpen(true);
+    if (count === 0 || isPaying) return;
+    setIsPaying(true);
+    try {
+      savePaidProfile();
+      setPaidOpen(true);
+    } finally {
+      setIsPaying(false);
+    }
   };
 
   return (
@@ -84,8 +103,14 @@ export function OplataScreen(): React.ReactElement {
                 {session.address.street}
               </div>
             </div>
-            <div className="num-mono" style={{ fontSize: 20, fontWeight: 600, whiteSpace: 'nowrap' }}>
-              {formatMoney(total)}
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: 13, color: 'var(--color-text-secondary)' }}>Начислено</div>
+              <div
+                className="num-mono"
+                style={{ marginTop: 2, fontSize: 20, fontWeight: 600, whiteSpace: 'nowrap' }}
+              >
+                {formatMoney(accruedTotal)}
+              </div>
             </div>
           </div>
 
@@ -98,11 +123,11 @@ export function OplataScreen(): React.ReactElement {
               display: 'flex',
               justifyContent: 'space-between',
               fontSize: 13,
-              color: 'var(--color-text-muted)',
+              color: 'var(--color-text-secondary)',
             }}
           >
-            <span>платёжный документ</span>
-            <span>сумма с учётом задолженности/переплаты</span>
+            <span>Платёжный документ</span>
+            <span>Сумма</span>
           </div>
 
           {/* Список квитанций */}
@@ -133,7 +158,7 @@ export function OplataScreen(): React.ReactElement {
               />
             </div>
             <div style={{ marginTop: 16, display: 'flex', gap: 12, alignItems: 'center' }}>
-              <Button variant="primary" onClick={onFindAccount}>
+              <Button variant="primary" onClick={onFindAccount} disabled={isFinding}>
                 Найти счёт
               </Button>
               <Button variant="secondary" onClick={() => navigate('/poisk-organizacii')}>
@@ -150,7 +175,6 @@ export function OplataScreen(): React.ReactElement {
         open={paidOpen}
         onClose={() => setPaidOpen(false)}
         title="Конец сценария прототипа"
-        subtitle="Оплата через банк — за пределами прототипа"
         footer={
           <>
             <Button variant="primary" onClick={() => navigate('/')}>
@@ -164,12 +188,10 @@ export function OplataScreen(): React.ReactElement {
       >
         <div style={{ fontSize: 15, lineHeight: 1.5, color: 'var(--color-text-secondary)' }}>
           <p style={{ margin: 0 }}>
-            Здесь сценарий прототипа завершается. В продукте дальше открывается платёжная форма банка
-            (ВБРР) и экран успешной оплаты — они вне объёма этого прототипа.
+            Дальше — оплата через банк. В прототипе сценарий останавливается здесь.
           </p>
           <p style={{ margin: '12px 0 0' }}>
-            Выбранные счета сохранены — на Главной появится блок «Оплатить снова», чтобы повторить оплату
-            без повторного ввода.
+            Счета сохранятся на этом устройстве — при следующем заходе появится «Оплатить снова».
           </p>
         </div>
       </Modal>

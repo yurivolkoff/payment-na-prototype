@@ -19,47 +19,54 @@ function declCount(n: number): string {
   return `${n} счетов`;
 }
 
-/** Карточка профиля в блоке «Оплатить снова» (Главная, кэш). */
+/** Карточка профиля в блоке «Оплатить снова» (Главная, кэш). Компактная одна строка. */
 export function SavedPaymentCard({ profile, onPay, onDelete }: SavedPaymentCardProps): React.ReactElement {
   return (
-    <Card padding={20} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div>
-        <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-text-primary)' }}>
+    <Card
+      padding={16}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 16,
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary)' }}>
           {profile.address.apartmentTitle}
-        </div>
-        <div style={{ marginTop: 4, fontSize: 14, color: 'var(--color-text-secondary)' }}>
-          {profile.address.street}
         </div>
         <div
           style={{
-            marginTop: 10,
+            marginTop: 4,
             display: 'flex',
             alignItems: 'center',
             gap: 8,
             fontSize: 13,
-            color: 'var(--color-text-secondary)',
+            color: 'var(--color-text-muted)',
             flexWrap: 'wrap',
           }}
         >
           <span>{declCount(profile.docs.length)}</span>
           <span>·</span>
           <span className="num-mono">
-            Последняя оплата: {formatMoney(profile.lastPaidTotal)} · {profile.lastPaidPeriod}
+            В прошлый раз: {formatMoney(profile.lastPaidTotal)} · {profile.lastPaidPeriod}
           </span>
         </div>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         <Button variant="primary" onClick={onPay}>
-          Оплатить
+          Перейти к оплате
         </Button>
-        <Button
-          variant="ghost"
+        <button
+          type="button"
           onClick={onDelete}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--color-text-secondary)' }}
+          aria-label="Удалить сохранённые счета"
+          title="Удалить"
+          className="icon-btn"
+          style={{ color: 'var(--color-text-muted)' }}
         >
-          <Icon name="24-editor-trash" size={18} />
-          Удалить
-        </Button>
+          <Icon name="24-editor-trash" size={20} />
+        </button>
       </div>
     </Card>
   );
