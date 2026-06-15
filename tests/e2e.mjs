@@ -478,6 +478,32 @@ async function main() {
     `value=${addrVal}`
   );
 
+  // ─── 15. Демо-переключатель состояний Главной ───────────────────────────
+  await page.goto(BASE_URL + '/');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await page.getByRole('button', { name: 'Пустое состояние' }).click();
+  await page.waitForTimeout(150);
+  await expect(
+    await page.getByLabel('Адрес квартиры').isVisible(),
+    '15.1 — «Пустое состояние»: форма поиска видна'
+  );
+  await expect(
+    !(await page.getByText('Ваши квартиры', { exact: true }).isVisible().catch(() => false)),
+    '15.2 — «Пустое состояние»: нет секции «Ваши квартиры»'
+  );
+  await page.getByRole('button', { name: 'С квартирой' }).click();
+  await page.waitForTimeout(150);
+  await expect(
+    await page.getByText('Ваши квартиры', { exact: true }).isVisible(),
+    '15.3 — «С квартирой»: секция «Ваши квартиры» видна'
+  );
+  await expect(
+    !(await page.getByLabel('Адрес квартиры').isVisible().catch(() => false)),
+    '15.4 — «С квартирой»: форма поиска свёрнута'
+  );
+
   // ─── FINAL ───────────────────────────────────────────────────────────────
   console.log('\n──────────────────────────');
   console.log(`Passed: ${results.filter((r) => r.ok).length}/${results.length}`);

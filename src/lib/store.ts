@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { AddressInfo, PaymentDoc, SavedProfile } from './types';
-import { PERIOD } from './seed';
+import { PERIOD, buildFullDocSet, seedAddress } from './seed';
 
 const LS_KEY = 'payment-na-prototype-profiles';
 
@@ -71,6 +71,12 @@ interface StoreState {
   savePaidProfile: () => void;
   /** Удалить сохранённый профиль. */
   deleteProfile: (profileId: string) => void;
+
+  // ── Демо-переключатель состояний Главной (презентационный, не продуктовый) ──
+  /** Демо: очистить все профили — «пустое состояние» Главной. */
+  clearProfiles: () => void;
+  /** Демо: засеять профиль квартиры — «состояние с заполненной квартирой». */
+  seedDemoProfile: () => void;
 
   // ── Хэндофф для пути B (Указать организацию → карточка → возврат) ──
   /** Сохранённый адрес для подстановки в карточку организации. */
@@ -167,4 +173,25 @@ export const useStore = create<StoreState>((set, get) => ({
     }),
 
   setPendingOrg: (orgId) => set({ pendingOrgId: orgId }),
+
+  clearProfiles: () =>
+    set(() => {
+      persistProfiles([]);
+      return { profiles: [] };
+    }),
+
+  seedDemoProfile: () =>
+    set(() => {
+      const docs = buildFullDocSet();
+      const total = docs.reduce((s, d) => (d.notIssued ? s : s + d.amount), 0);
+      const profile: SavedProfile = {
+        id: 'profile-demo',
+        address: seedAddress,
+        docs,
+        lastPaidTotal: total,
+        lastPaidPeriod: PERIOD,
+      };
+      persistProfiles([profile]);
+      return { profiles: [profile] };
+    }),
 }));

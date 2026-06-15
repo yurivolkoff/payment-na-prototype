@@ -5,10 +5,12 @@ import { OplataScreen } from './screens/OplataScreen';
 import { OrgSearchScreen } from './screens/OrgSearchScreen';
 import { OrgCardScreen } from './screens/OrgCardScreen';
 import { ToastHost } from './components/ui/Toast';
+import { DemoStateBar } from './components/layout/DemoStateBar';
 
 export default function App() {
   return (
     <>
+      <DemoStateBar />
       <Routes>
         <Route path="/" element={<HomeScreen />} />
         <Route path="/oplata" element={<OplataScreen />} />
