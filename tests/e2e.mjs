@@ -291,7 +291,7 @@ async function main() {
     '9.4c — Подтверждение удаления убирает профиль'
   );
 
-  // ─── 10. Главная: «не найдено» по неизвестному ЛС (без перехода) ─────────
+  // ─── 10. Главная: принимается ЛЮБОЙ ЛС без проверки ─────────────────────
   await page.goto(BASE_URL + '/');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
@@ -299,18 +299,19 @@ async function main() {
   await page.getByLabel('Адрес квартиры').fill('Квартира 48, г. Курск, ул. Гайдара, д. 5');
   await page.getByLabel('Номер лицевого счёта').fill('999999999');
   await page.getByRole('button', { name: 'Найти' }).click();
-  await page.waitForTimeout(250);
+  await page.waitForURL(/\/oplata/);
   await expect(
-    await page.getByText('Счёт не найден. Проверьте номер или укажите организацию').isVisible(),
-    '10.1 — Неизвестный ЛС → инлайн-ошибка'
-  );
-  await expect(
-    page.url().endsWith('/') || !page.url().includes('/oplata'),
-    '10.2 — Нет перехода на Оплату при «не найдено»',
+    page.url().includes('/oplata'),
+    '10.1 — Любой ЛС принимается → переход на Оплату',
     `url=${page.url()}`
   );
 
   // ─── 11. Дедуп: повторное добавление того же ЛС не дублирует ─────────────
+  await page.goto(BASE_URL + '/');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await page.getByLabel('Адрес квартиры').fill('Квартира 48, г. Курск, ул. Гайдара, д. 5');
   await page.getByLabel('Номер лицевого счёта').fill('101001090');
   await page.getByRole('button', { name: 'Найти' }).click();
   await page.waitForURL(/\/oplata/);
@@ -372,6 +373,24 @@ async function main() {
   await expect(
     (await breakdown.locator('.amount-pill').count()) === 0,
     '13.4 — Суммы под-начислений — не amount-pill'
+  );
+
+  // ─── 14. Подсказки адреса на Главной ────────────────────────────────────
+  await page.goto(BASE_URL + '/');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await page.getByLabel('Адрес квартиры').fill('Гайдара');
+  await page.waitForTimeout(150);
+  const suggestion = page.locator('.suggest-item', { hasText: 'Гайдара' }).first();
+  await expect(await suggestion.isVisible(), '14.1 — Подсказка адреса появляется при вводе');
+  await suggestion.dispatchEvent('mousedown');
+  await page.waitForTimeout(100);
+  const addrVal = await page.getByLabel('Адрес квартиры').inputValue();
+  await expect(
+    addrVal.includes('кв.') && addrVal.toLowerCase().includes('гайдара'),
+    '14.2 — Клик по подсказке подставляет адрес до квартиры',
+    `value=${addrVal}`
   );
 
   // ─── FINAL ───────────────────────────────────────────────────────────────

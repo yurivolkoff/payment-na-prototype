@@ -7,7 +7,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { SavedPaymentCard } from '../components/payment/SavedPaymentCard';
 import { useStore } from '../lib/store';
-import { findHomeDocByAccount } from '../lib/seed';
+import { findHomeDocByAccount, ADDRESS_SUGGESTIONS } from '../lib/seed';
 import type { AddressInfo } from '../lib/types';
 
 const LS_HELPER =
@@ -51,6 +51,12 @@ export function HomeScreen(): React.ReactElement {
   const [accountError, setAccountError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [addrOpen, setAddrOpen] = useState(false);
+
+  const addrQuery = address.trim().toLowerCase();
+  const addrMatches = (
+    addrQuery ? ADDRESS_SUGGESTIONS.filter((s) => s.toLowerCase().includes(addrQuery)) : ADDRESS_SUGGESTIONS
+  ).slice(0, 6);
 
   const onFind = () => {
     if (isPending) return;
@@ -76,12 +82,8 @@ export function HomeScreen(): React.ReactElement {
 
       if (!ok) return;
 
+      // Принимаем любой номер лицевого счёта без проверки (демо).
       const doc = findHomeDocByAccount(account.trim());
-      if (!doc) {
-        setAccountError('Счёт не найден. Проверьте номер или укажите организацию');
-        return;
-      }
-
       const addr = parseAddress(address);
       startSession(addr, [doc]);
       navigate('/oplata');
@@ -150,13 +152,42 @@ export function HomeScreen(): React.ReactElement {
             helperText={LS_HELPER}
             onChange={(e) => setAccount(e.target.value)}
           />
-          <TextInput
-            label="Адрес квартиры"
-            placeholder="Город, улица, дом, квартира"
-            value={address}
-            error={addressError}
-            onChange={(e) => setAddress(e.target.value)}
-          />
+          <div style={{ position: 'relative' }}>
+            <TextInput
+              label="Адрес квартиры"
+              placeholder="Город, улица, дом, квартира"
+              value={address}
+              error={addressError}
+              autoComplete="off"
+              onChange={(e) => {
+                setAddress(e.target.value);
+                setAddressError(null);
+                setAddrOpen(true);
+              }}
+              onFocus={() => setAddrOpen(true)}
+              onBlur={() => window.setTimeout(() => setAddrOpen(false), 120)}
+            />
+            {addrOpen && addrMatches.length > 0 && (
+              <ul className="suggest-list" role="listbox" aria-label="Подсказки адреса">
+                {addrMatches.map((s) => (
+                  <li
+                    key={s}
+                    role="option"
+                    aria-selected={false}
+                    className="suggest-item"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setAddress(s);
+                      setAddressError(null);
+                      setAddrOpen(false);
+                    }}
+                  >
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
         <Button
           variant="primary"
