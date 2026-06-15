@@ -1,0 +1,11 @@
+node_modules/
+dist/
+test-output/
+.DS_Store
+*.log
+.vscode/
+# Внутренние артефакты — не публикуем в открытый репозиторий
+logs/
+docs/
+_review-cmp/
+.playwright-mcp/

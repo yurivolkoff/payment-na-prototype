@@ -1,0 +1,118 @@
+import React, { useRef, useState } from 'react';
+import type { PaymentDoc } from '../../lib/types';
+import { Checkbox } from '../ui/Checkbox';
+import { Icon } from '../ui/Icon';
+import { Popover } from '../ui/Popover';
+import { formatMoney } from '../../lib/format';
+import { notImplemented } from '../../lib/toast';
+
+export interface PaymentDocCardProps {
+  doc: PaymentDoc;
+  checked: boolean;
+  onToggle: () => void;
+}
+
+const NOT_ISSUED_TEXT =
+  'Поставщик ещё не выставил квитанцию за этот период. Оплатить можно будет позже';
+
+/** Строка квитанции: чекбокс, организация, ЛС/услуга, сумма, под-начисления. */
+export function PaymentDocCard({ doc, checked, onToggle }: PaymentDocCardProps): React.ReactElement {
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  const infoRef = useRef<HTMLButtonElement>(null);
+
+  const accountLine = doc.service
+    ? `лицевой счёт ${doc.account}; ${doc.service}`
+    : `лицевой счёт ${doc.account}`;
+
+  return (
+    <div style={{ paddingBlock: 18, borderBottom: '1px solid var(--color-border-subtle)' }}>
+      <div className="doc-row">
+        <Checkbox
+          checked={checked}
+          disabled={doc.notIssued}
+          onChange={onToggle}
+          aria-label={`Оплатить счёт: ${doc.org}`}
+        />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--color-text-primary)' }}>
+            {doc.org}
+          </div>
+          <div
+            style={{
+              marginTop: 4,
+              fontSize: 14,
+              color: 'var(--color-text-secondary)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              flexWrap: 'wrap',
+            }}
+          >
+            <span>{doc.notIssued ? `лицевой счёт ${doc.account}; ${doc.service}` : accountLine}</span>
+            {doc.notIssued && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <span>поставщик ещё не выставил счёт</span>
+                <button
+                  ref={infoRef}
+                  type="button"
+                  aria-label="Почему счёт не выставлен"
+                  onClick={() => {
+                    setAnchorRect(infoRef.current?.getBoundingClientRect() ?? null);
+                    setPopoverOpen((v) => !v);
+                  }}
+                  style={{ color: 'var(--color-text-muted)', display: 'inline-flex' }}
+                >
+                  <Icon name="24-status-information" size={16} />
+                </button>
+              </span>
+            )}
+          </div>
+          {!doc.notIssued && (
+            <button
+              type="button"
+              onClick={notImplemented}
+              className="link-hover"
+              style={{
+                marginTop: 8,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                color: 'var(--color-text-link)',
+                fontSize: 14,
+                fontWeight: 500,
+              }}
+            >
+              Скачать квитанцию
+            </button>
+          )}
+        </div>
+        <div className="amount-pill num-mono">{formatMoney(doc.amount)}</div>
+      </div>
+
+      {/* Под-начисления */}
+      {doc.subCharges?.map((sub) => (
+        <div
+          key={sub.id}
+          className="doc-row"
+          style={{ marginTop: 14, alignItems: 'center' }}
+        >
+          <span />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary)' }}>
+              {sub.org}
+            </div>
+            <div style={{ marginTop: 2, fontSize: 14, color: 'var(--color-text-secondary)' }}>
+              {sub.service}
+            </div>
+          </div>
+          <div className="amount-pill num-mono">{formatMoney(sub.amount)}</div>
+        </div>
+      ))}
+
+      <Popover open={popoverOpen} onClose={() => setPopoverOpen(false)} anchorRect={anchorRect} width={300}>
+        {NOT_ISSUED_TEXT}
+      </Popover>
+    </div>
+  );
+}

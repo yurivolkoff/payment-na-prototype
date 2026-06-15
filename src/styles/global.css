@@ -1,0 +1,417 @@
+/* Reset + base */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body-md, 16px);
+  line-height: var(--line-height-body-md, 24px);
+  color: var(--color-text-primary);
+  background: var(--color-background-page);
+  font-feature-settings: var(--font-feature-numeric);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+a {
+  color: var(--color-text-link);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Layout */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 32px;
+  box-sizing: border-box;
+}
+
+.main {
+  flex: 1;
+  width: 100%;
+  padding: 24px 0 40px;
+}
+
+/* ───── Payment-flow layout utilities ───── */
+
+/* Page title (H1) used on Оплата / Поиск / Карточка организации. */
+.screen-title {
+  font-size: 56px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -1px;
+  margin: 8px 0 0;
+  color: var(--color-text-primary);
+}
+
+.screen-subtitle {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  margin: 12px 0 0;
+}
+
+/* Two-column layout: content + sticky sidebar (Экран 2). */
+.pay-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  align-items: start;
+}
+
+.pay-summary {
+  position: sticky;
+  top: 24px;
+}
+
+/* Row of a payment document inside PaymentDocCard. */
+.doc-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+}
+
+/* Amount pill on the right of a doc row. */
+.amount-pill {
+  background: var(--color-background-surface-subtle);
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-align: right;
+  min-width: 160px;
+}
+
+/* Org result row (Экран 3). */
+.org-row {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 24px;
+  gap: 16px;
+  align-items: start;
+  width: 100%;
+  text-align: left;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  transition: background-color 0.12s;
+}
+
+.org-row:hover {
+  background-color: var(--color-neutral-50);
+}
+
+/* Custom checkbox (UI kit Checkbox.tsx). */
+.cb-box {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  border: 2px solid var(--color-neutral-400);
+  background: var(--color-background-surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+}
+
+.cb-input:hover:not(:disabled) + .cb-box {
+  border-color: var(--color-action-primary);
+}
+
+.cb-input:checked + .cb-box {
+  background: var(--color-action-primary);
+  border-color: var(--color-action-primary);
+}
+
+.cb-input:disabled + .cb-box {
+  border-color: var(--color-neutral-300);
+  background: var(--color-neutral-100);
+  cursor: not-allowed;
+}
+
+.cb-input:focus-visible + .cb-box {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+/* Logo */
+.logo-dom {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--color-accent-600);
+  color: #fff;
+  padding: 6px 10px 5px;
+  border-radius: 6px;
+  line-height: 1;
+}
+.logo-dom__brand {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: lowercase;
+}
+.logo-dom__product {
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: lowercase;
+  margin-top: 2px;
+}
+
+/* Icon-mask helper */
+.icon-mask {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  background-color: currentColor;
+  flex-shrink: 0;
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+          mask-position: center;
+  -webkit-mask-size: contain;
+          mask-size: contain;
+  vertical-align: middle;
+}
+
+/* Numeric tabular utility */
+.num-mono {
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+
+/* ───── Interactive states ───── */
+
+/* Buttons (UI Kit Button.tsx wraps native button). Hover/active by variant. */
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:hover,
+button:focus-visible {
+  outline-offset: 2px;
+}
+
+/* Link-style buttons (text-only ghost links) */
+.link-hover:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.link-hover:active {
+  opacity: 0.7;
+}
+
+/* Header / footer icon buttons */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 8px;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.icon-btn:hover {
+  background-color: var(--color-neutral-100);
+}
+
+.icon-btn:active {
+  background-color: var(--color-neutral-200);
+}
+
+/* Apartment tiles in шахматка */
+.tile {
+  outline: 0;
+}
+
+.tile:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(11, 17, 23, 0.08);
+  z-index: 1;
+}
+
+.tile--ok:hover {
+  border-color: var(--color-action-primary) !important;
+}
+
+.tile--warning:hover {
+  border-color: var(--color-warning-500) !important;
+}
+
+.tile--error:hover {
+  border-color: var(--color-error-500) !important;
+}
+
+.tile:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* Tile tooltip (revealed on hover/focus). */
+.tile-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  background: var(--color-neutral-1000);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+  padding: 6px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+  max-width: 280px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s, transform 0.12s, visibility 0.12s;
+  z-index: 5;
+  box-shadow: 0 4px 12px rgba(11, 17, 23, 0.18);
+}
+
+.tile-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-style: solid;
+  border-width: 5px 5px 0 5px;
+  border-color: var(--color-neutral-1000) transparent transparent transparent;
+}
+
+.tile:hover .tile-tooltip,
+.tile:focus-visible .tile-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Inputs / textareas focus */
+input,
+textarea,
+select {
+  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--color-action-primary) !important;
+  box-shadow: 0 0 0 3px var(--color-accent-100);
+}
+
+input:hover:not(:disabled),
+textarea:hover:not(:disabled),
+select:hover:not(:disabled) {
+  background-color: var(--color-neutral-100);
+}
+
+/* Accordion / Card row hover (handled via :hover where applicable) */
+details summary {
+  cursor: pointer;
+}
+
+.accordion-header:hover {
+  background-color: var(--color-neutral-50);
+}
+
+.accordion-header:active {
+  background-color: var(--color-neutral-100);
+}
+
+/* Tighter — primary button hover variant: handled inline below */
+.btn-primary:hover {
+  filter: brightness(0.96);
+}
+
+.btn-primary:active {
+  filter: brightness(0.92);
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-accent-200) !important;
+}
+
+.btn-secondary:active {
+  background-color: var(--color-accent-300) !important;
+}
+
+.btn-ghost:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* High-contrast accessibility theme */
+:root[data-theme='high-contrast'] {
+  --color-background-page: #000;
+  --color-background-surface: #000;
+  --color-background-surface-subtle: #000;
+  --color-text-primary: #fff;
+  --color-text-secondary: #ffd700;
+  --color-text-link: #ffd700;
+  --color-border-default: #fff;
+  --color-action-primary: #ffd700;
+  --color-action-primary-hover: #fff;
+  --color-text-on-action: #000;
+}
+
+:root[data-theme='high-contrast'] body {
+  font-size: 18px;
+}

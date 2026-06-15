@@ -1,0 +1,28 @@
+{
+  "name": "payment-na-prototype",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --port 5174",
+    "deploy": "gh-pages -d dist -t true"
+  },
+  "dependencies": {
+    "@fontsource/golos-text": "^5.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.27.0",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "gh-pages": "^6.2.0",
+    "playwright": "^1.60.0",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}
