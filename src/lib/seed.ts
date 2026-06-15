@@ -93,15 +93,27 @@ export function buildKurskenergoDoc(account = '770050010101'): PaymentDoc {
   };
 }
 
-// ─── Поиск счёта по номеру (блок «Оплатить несколько счетов» на Экране 2) ────
+/** Generic-счёт по любому введённому номеру (если номер не из «известных»). */
+export function buildGenericDoc(account: string): PaymentDoc {
+  return {
+    id: nextDocId(),
+    org: 'ООО «Городская УК»',
+    account: account.trim(),
+    service: 'Содержание и ремонт',
+    amount: 3200,
+  };
+}
+
+// ─── Поиск счёта по номеру (добавление счёта на Экране 2) ─────────────────────
 
 /**
  * Мок поиска счёта по номеру лицевого счёта.
- * Возвращает документ, если номер «найден», иначе null.
+ * Принимает ЛЮБОЙ номер: известные → их счёт, прочие → generic-счёт.
+ * Никогда не возвращает null — добавление по номеру всегда срабатывает.
  */
-export function findDocByAccount(account: string): PaymentDoc | null {
+export function findDocByAccount(account: string): PaymentDoc {
   const a = account.trim();
-  // Кристалл — находится по своему номеру.
+  // Кристалл — находится по своему номеру (с расшифровкой под-начислений).
   if (a === '1022345701' || a === '102234570123' || a === '1022345701 23') {
     return buildKristallDoc();
   }
@@ -113,7 +125,8 @@ export function findDocByAccount(account: string): PaymentDoc | null {
   if (a === '770050010101' || a === '7700500101') {
     return buildKurskenergoDoc(a);
   }
-  return null;
+  // Любой другой номер — generic-счёт с введённым лицевым счётом.
+  return buildGenericDoc(a);
 }
 
 /**

@@ -66,8 +66,12 @@ async function main() {
     '1.2 — Блок поиска виден'
   );
   await expect(
-    !(await page.getByRole('heading', { name: 'Оплатить снова' }).isVisible().catch(() => false)),
-    '1.3 — Блок «Оплатить снова» скрыт без кэша'
+    !(await page.getByText('Ваши квартиры', { exact: true }).isVisible().catch(() => false)),
+    '1.3 — Список «Ваши квартиры» скрыт без кэша'
+  );
+  await expect(
+    await page.getByLabel('Адрес квартиры').isVisible(),
+    '1.4 — Форма поиска показана сразу (нет профилей)'
   );
 
   // ─── 2. Валидации ───────────────────────────────────────────────────────
@@ -119,9 +123,21 @@ async function main() {
     `summary=«${sumText.replace(/\n/g, ' ')}»`
   );
 
-  // ─── 4. Добавить счёт по номеру (найден) ────────────────────────────────
+  // ─── 4. Inline-добавление счёта по номеру (любой номер принимается) ─────
+  // Раскрываем компактную строку добавления.
+  await expect(
+    !(await page.getByLabel('Номер лицевого счёта').isVisible().catch(() => false)),
+    '4.0 — Строка добавления свёрнута по умолчанию'
+  );
+  await page.getByRole('button', { name: '+ Добавить ещё счёт' }).click();
+  await page.waitForTimeout(150);
+  await expect(
+    await page.getByLabel('Номер лицевого счёта').isVisible(),
+    '4.0b — «+ Добавить ещё счёт» раскрывает inline-строку'
+  );
+
   await page.getByLabel('Номер лицевого счёта').fill('770050010101');
-  await page.getByRole('button', { name: 'Найти счёт' }).click();
+  await page.getByRole('button', { name: 'Добавить', exact: true }).click();
   await page.waitForTimeout(200);
   await expect(
     await page.getByText('ПАО «Курскэнергосбыт»').isVisible(),
@@ -134,16 +150,68 @@ async function main() {
     `summary=«${sumText.replace(/\n/g, ' ')}»`
   );
 
-  await page.getByLabel('Номер лицевого счёта').fill('000000');
-  await page.getByRole('button', { name: 'Найти счёт' }).click();
-  await page.waitForTimeout(150);
+  // 4.3 — Строка остаётся открытой после добавления (можно добавить ещё).
   await expect(
-    await page.getByText('Счёт не найден. Проверьте номер или укажите организацию').isVisible(),
-    '4.3 — Ошибка «Счёт не найден»'
+    await page.getByLabel('Номер лицевого счёта').isVisible(),
+    '4.3 — Inline-строка остаётся открытой после добавления'
+  );
+  // 4.4 — Нет ошибки «Счёт не найден» на Оплате.
+  await expect(
+    !(await page.getByText('Счёт не найден', { exact: false }).isVisible().catch(() => false)),
+    '4.4 — Нет ошибки «Счёт не найден» на Оплате'
   );
 
-  // ─── 5. Path B: Указать организацию → поиск → карточка → продолжить ──────
-  await page.getByRole('button', { name: 'Указать организацию' }).click();
+  // ─── 4b. Изолированно: произвольный ЛС принимается + fallback-ссылка ─────
+  await page.goto(BASE_URL + '/');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await page.getByLabel('Адрес квартиры').fill('Квартира 48, г. Курск, ул. Гайдара, д. 5');
+  await page.getByLabel('Номер лицевого счёта').fill('101001090');
+  await page.getByRole('button', { name: 'Найти' }).click();
+  await page.waitForURL(/\/oplata/);
+  await page.waitForTimeout(200);
+  await page.getByRole('button', { name: '+ Добавить ещё счёт' }).click();
+  await page.waitForTimeout(150);
+  const arbTotalBefore = parseRub(await summary.innerText());
+  await page.getByLabel('Номер лицевого счёта').fill('555000111');
+  await page.getByRole('button', { name: 'Добавить', exact: true }).click();
+  await page.waitForTimeout(200);
+  const arbTotalAfter = parseRub(await summary.innerText());
+  await expect(
+    arbTotalAfter > arbTotalBefore,
+    '4b.1 — Произвольный ЛС принимается и увеличивает итог',
+    `before=${arbTotalBefore} after=${arbTotalAfter}`
+  );
+  await expect(
+    !(await page.getByText('Счёт не найден', { exact: false }).isVisible().catch(() => false)),
+    '4b.2 — Нет ошибки на произвольном ЛС'
+  );
+  await page.getByText('Не знаю номер — найти по организации').click();
+  await page.waitForURL(/\/poisk-organizacii/);
+  await page.waitForTimeout(150);
+  await expect(
+    await page.getByRole('heading', { name: 'Поиск счетов по организации' }).isVisible(),
+    '4b.3 — Fallback-ссылка ведёт на поиск по организации'
+  );
+
+  // ─── 5. Path B: поиск организации → карточка → продолжить ───────────────
+  // Возвращаемся к основному сценарию (Газпром + Курскэнерго).
+  await page.goto(BASE_URL + '/');
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await page.getByLabel('Адрес квартиры').fill('Квартира 48, обл. Курская, г. Курск, ул. Гайдара, д. 5');
+  await page.getByLabel('Номер лицевого счёта').fill('101001090');
+  await page.getByRole('button', { name: 'Найти' }).click();
+  await page.waitForURL(/\/oplata/);
+  await page.waitForTimeout(200);
+  await page.getByRole('button', { name: '+ Добавить ещё счёт' }).click();
+  await page.waitForTimeout(150);
+  await page.getByLabel('Номер лицевого счёта').fill('770050010101');
+  await page.getByRole('button', { name: 'Добавить', exact: true }).click();
+  await page.waitForTimeout(200);
+  await page.getByText('Не знаю номер — найти по организации').click();
   await page.waitForURL(/\/poisk-organizacii/);
   await page.waitForTimeout(150);
   await shot(page, '03-org-search');
@@ -212,8 +280,10 @@ async function main() {
   await expect(!(await payBtn.isDisabled()), '6.4 — [Оплатить] активна при 1 выбранном');
 
   // ─── 7. «не выставил счёт» ───────────────────────────────────────────────
+  await page.getByRole('button', { name: '+ Добавить ещё счёт' }).click();
+  await page.waitForTimeout(150);
   await page.getByLabel('Номер лицевого счёта').fill('001234567890');
-  await page.getByRole('button', { name: 'Найти счёт' }).click();
+  await page.getByRole('button', { name: 'Добавить', exact: true }).click();
   await page.waitForTimeout(200);
   await expect(
     await page.getByText('поставщик ещё не выставил счёт').isVisible(),
@@ -241,19 +311,32 @@ async function main() {
   await page.getByRole('button', { name: 'На главную', exact: true }).click();
   await page.waitForTimeout(300);
 
-  // ─── 9. Кэш «Оплатить снова» ────────────────────────────────────────────
+  // ─── 9. Сохранённая квартира первой на Главной («Ваши квартиры») ─────────
   await page.waitForTimeout(200);
   await shot(page, '06-home-cached');
   await expect(
-    await page.getByRole('heading', { name: 'Оплатить снова' }).isVisible(),
-    '9.1 — Блок «Оплатить снова» появился'
+    await page.getByText('Ваши квартиры', { exact: true }).isVisible(),
+    '9.1 — Метка «Ваши квартиры» появилась'
   );
   await expect(
     await page.getByText('Квартира 48').first().isVisible(),
     '9.2 — Карточка профиля с адресом'
   );
-  const cacheCard = page.getByRole('heading', { name: 'Оплатить снова' }).locator('xpath=ancestor::*[1]');
-  await cacheCard.getByRole('button', { name: 'Перейти к оплате' }).first().click();
+  // 9.2b — Форма поиска свёрнута по умолчанию (поле адреса не видно).
+  await expect(
+    !(await page.getByLabel('Адрес квартиры').isVisible().catch(() => false)),
+    '9.2b — Форма поиска свёрнута, пока есть профиль'
+  );
+  // 9.2c — Триггер «Оплатить другой счёт» раскрывает форму.
+  await page.getByRole('button', { name: 'Оплатить другой счёт' }).click();
+  await page.waitForTimeout(150);
+  await expect(
+    await page.getByLabel('Адрес квартиры').isVisible(),
+    '9.2c — «Оплатить другой счёт» раскрывает форму поиска'
+  );
+
+  // 9.3 — Карточка ведёт на /oplata с полным набором счетов.
+  await page.getByRole('button', { name: 'Оплатить', exact: true }).first().click();
   await page.waitForURL(/\/oplata/);
   await page.waitForTimeout(200);
   await expect(
@@ -263,17 +346,16 @@ async function main() {
     '9.3 — Полный набор счетов восстановлен из кэша'
   );
 
-  // 9.5 — Карточка кэша честно подписывает прошлую сумму («В прошлый раз»).
+  // 9.5 — Карточка честно подписывает прошлую сумму («В прошлый раз»).
   await page.goto(BASE_URL + '/');
   await page.waitForTimeout(200);
   await expect(
     await page.getByText('В прошлый раз:', { exact: false }).first().isVisible(),
-    '9.5 — Подпись «В прошлый раз» в карточке кэша'
+    '9.5 — Подпись «В прошлый раз» в карточке'
   );
 
   // 9.4 — [Удалить] просит подтверждение через модалку, затем убирает профиль.
-  const cacheCard2 = page.getByRole('heading', { name: 'Оплатить снова' }).locator('xpath=ancestor::*[1]');
-  await cacheCard2.getByRole('button', { name: 'Удалить сохранённые счета' }).first().click();
+  await page.getByRole('button', { name: 'Удалить сохранённые счета' }).first().click();
   await page.waitForTimeout(200);
   await expect(
     await page.getByRole('heading', { name: 'Удалить сохранённые счета?' }).isVisible(),
@@ -281,13 +363,13 @@ async function main() {
   );
   // Профиль ещё на месте, пока не подтвердили.
   await expect(
-    await page.getByRole('heading', { name: 'Оплатить снова' }).isVisible(),
+    await page.getByText('Ваши квартиры', { exact: true }).isVisible(),
     '9.4b — Профиль сохраняется до подтверждения'
   );
   await page.getByRole('button', { name: 'Удалить', exact: true }).click();
   await page.waitForTimeout(200);
   await expect(
-    !(await page.getByRole('heading', { name: 'Оплатить снова' }).isVisible().catch(() => false)),
+    !(await page.getByText('Ваши квартиры', { exact: true }).isVisible().catch(() => false)),
     '9.4c — Подтверждение удаления убирает профиль'
   );
 
@@ -316,12 +398,14 @@ async function main() {
   await page.getByRole('button', { name: 'Найти' }).click();
   await page.waitForURL(/\/oplata/);
   await page.waitForTimeout(200);
+  await page.getByRole('button', { name: '+ Добавить ещё счёт' }).click();
+  await page.waitForTimeout(150);
   await page.getByLabel('Номер лицевого счёта').fill('770050010101');
-  await page.getByRole('button', { name: 'Найти счёт' }).click();
+  await page.getByRole('button', { name: 'Добавить', exact: true }).click();
   await page.waitForTimeout(200);
   const energoCount1 = await page.getByText('ПАО «Курскэнергосбыт»').count();
   await page.getByLabel('Номер лицевого счёта').fill('770050010101');
-  await page.getByRole('button', { name: 'Найти счёт' }).click();
+  await page.getByRole('button', { name: 'Добавить', exact: true }).click();
   await page.waitForTimeout(200);
   const energoCount2 = await page.getByText('ПАО «Курскэнергосбыт»').count();
   await expect(
@@ -348,8 +432,9 @@ async function main() {
   );
 
   // ─── 13. Под-начисления — расшифровка, не платёжная строка ───────────────
+  // Inline-строка добавления осталась открытой после секции 11.
   await page.getByLabel('Номер лицевого счёта').fill('1022345701 23');
-  await page.getByRole('button', { name: 'Найти счёт' }).click();
+  await page.getByRole('button', { name: 'Добавить', exact: true }).click();
   await page.waitForTimeout(200);
   await expect(
     await page.getByText('В том числе', { exact: true }).first().isVisible(),

@@ -19,7 +19,7 @@ function declCount(n: number): string {
   return `${n} счетов`;
 }
 
-/** Карточка профиля в блоке «Оплатить снова» (Главная, кэш). Компактная одна строка. */
+/** Карточка сохранённой квартиры (Главная, список «Ваши квартиры»). Компактная одна строка. */
 export function SavedPaymentCard({ profile, onPay, onDelete }: SavedPaymentCardProps): React.ReactElement {
   return (
     <Card
@@ -34,6 +34,18 @@ export function SavedPaymentCard({ profile, onPay, onDelete }: SavedPaymentCardP
       <div style={{ minWidth: 0 }}>
         <div style={{ fontSize: 15, fontWeight: 500, color: 'var(--color-text-primary)' }}>
           {profile.address.apartmentTitle}
+        </div>
+        <div
+          style={{
+            marginTop: 2,
+            fontSize: 13,
+            color: 'var(--color-text-secondary)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {profile.address.street}
         </div>
         <div
           style={{
@@ -55,7 +67,7 @@ export function SavedPaymentCard({ profile, onPay, onDelete }: SavedPaymentCardP
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         <Button variant="primary" onClick={onPay}>
-          Перейти к оплате
+          Оплатить
         </Button>
         <button
           type="button"

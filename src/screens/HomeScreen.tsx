@@ -52,6 +52,10 @@ export function HomeScreen(): React.ReactElement {
   const [isPending, setIsPending] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [addrOpen, setAddrOpen] = useState(false);
+  // Форма поиска свёрнута по умолчанию, когда есть сохранённые квартиры.
+  const [formOpen, setFormOpen] = useState(false);
+
+  const hasProfiles = profiles.length > 0;
 
   const addrQuery = address.trim().toLowerCase();
   const addrMatches = (
@@ -134,94 +138,133 @@ export function HomeScreen(): React.ReactElement {
         </div>
       </Card>
 
-      {/* Блок поиска */}
+      {/* Блок поиска и оплаты */}
       <Card padding={40} style={{ marginBottom: 24 }}>
         <h2 style={{ margin: 0, fontSize: 32, fontWeight: 600, letterSpacing: '-0.5px' }}>
           Найти и оплатить коммунальные услуги
         </h2>
-        <p style={{ margin: '12px 0 24px', fontSize: 16, color: 'var(--color-text-secondary)', maxWidth: 720 }}>
-          Укажите адрес квартиры и номер лицевого счёта с любой квитанции — найдите и оплатите все
-          начисления по квартире
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
-          <TextInput
-            label="Номер лицевого счёта"
-            placeholder="Введите номер"
-            value={account}
-            error={accountError}
-            helperText={LS_HELPER}
-            onChange={(e) => setAccount(e.target.value)}
-          />
-          <div style={{ position: 'relative' }}>
-            <TextInput
-              label="Адрес квартиры"
-              placeholder="Город, улица, дом, квартира"
-              value={address}
-              error={addressError}
-              autoComplete="off"
-              onChange={(e) => {
-                setAddress(e.target.value);
-                setAddressError(null);
-                setAddrOpen(true);
-              }}
-              onFocus={() => setAddrOpen(true)}
-              onBlur={() => window.setTimeout(() => setAddrOpen(false), 120)}
-            />
-            {addrOpen && addrMatches.length > 0 && (
-              <ul className="suggest-list" role="listbox" aria-label="Подсказки адреса">
-                {addrMatches.map((s) => (
-                  <li
-                    key={s}
-                    role="option"
-                    aria-selected={false}
-                    className="suggest-item"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setAddress(s);
-                      setAddressError(null);
-                      setAddrOpen(false);
-                    }}
-                  >
-                    {s}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-        <Button
-          variant="primary"
-          size="lg"
-          onClick={onFind}
-          disabled={isPending}
-          style={{ marginTop: 24 }}
-        >
-          Найти
-        </Button>
-      </Card>
 
-      {/* Блок кэша «Оплатить снова» */}
-      {profiles.length > 0 && (
-        <Card padding={32} style={{ marginBottom: 24 }}>
-          <h2 style={{ margin: 0, fontSize: 24, fontWeight: 600 }}>Оплатить снова</h2>
-          <p style={{ margin: '8px 0 20px', fontSize: 15, color: 'var(--color-text-secondary)' }}>
-            Ваши счета сохранены — повторите оплату без повторного ввода
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            {profiles.map((p) => (
-              <SavedPaymentCard
-                key={p.id}
-                profile={p}
-                onPay={() => {
-                  restoreFromProfile(p.id);
-                  navigate('/oplata');
+        {hasProfiles && (
+          <>
+            {/* Сохранённые квартиры — первыми, как основной путь */}
+            <div
+              style={{
+                margin: '24px 0 8px',
+                fontSize: 13,
+                fontWeight: 500,
+                color: 'var(--color-text-secondary)',
+              }}
+            >
+              Ваши квартиры
+            </div>
+            <div style={{ display: 'grid', gap: 12 }}>
+              {profiles.map((p) => (
+                <SavedPaymentCard
+                  key={p.id}
+                  profile={p}
+                  onPay={() => {
+                    restoreFromProfile(p.id);
+                    navigate('/oplata');
+                  }}
+                  onDelete={() => setDeleteId(p.id)}
+                />
+              ))}
+            </div>
+
+            {/* Вторичный триггер раскрытия формы поиска */}
+            {!formOpen && (
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => setFormOpen(true)}
+                style={{
+                  marginTop: 16,
+                  background: 'transparent',
+                  border: 0,
+                  padding: 0,
+                  fontSize: 15,
+                  fontWeight: 500,
+                  color: 'var(--color-text-link)',
+                  cursor: 'pointer',
                 }}
-                onDelete={() => setDeleteId(p.id)}
+              >
+                Оплатить другой счёт
+              </button>
+            )}
+          </>
+        )}
+
+        {(!hasProfiles || formOpen) && (
+          <div style={{ marginTop: hasProfiles ? 24 : 0 }}>
+            <p
+              style={{
+                margin: '12px 0 24px',
+                fontSize: 16,
+                color: 'var(--color-text-secondary)',
+                maxWidth: 720,
+              }}
+            >
+              Укажите адрес квартиры и номер лицевого счёта с любой квитанции — найдите и оплатите все
+              начисления по квартире
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
+              <TextInput
+                label="Номер лицевого счёта"
+                placeholder="Введите номер"
+                value={account}
+                error={accountError}
+                helperText={LS_HELPER}
+                onChange={(e) => setAccount(e.target.value)}
               />
-            ))}
+              <div style={{ position: 'relative' }}>
+                <TextInput
+                  label="Адрес квартиры"
+                  placeholder="Город, улица, дом, квартира"
+                  value={address}
+                  error={addressError}
+                  autoComplete="off"
+                  onChange={(e) => {
+                    setAddress(e.target.value);
+                    setAddressError(null);
+                    setAddrOpen(true);
+                  }}
+                  onFocus={() => setAddrOpen(true)}
+                  onBlur={() => window.setTimeout(() => setAddrOpen(false), 120)}
+                />
+                {addrOpen && addrMatches.length > 0 && (
+                  <ul className="suggest-list" role="listbox" aria-label="Подсказки адреса">
+                    {addrMatches.map((s) => (
+                      <li
+                        key={s}
+                        role="option"
+                        aria-selected={false}
+                        className="suggest-item"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setAddress(s);
+                          setAddressError(null);
+                          setAddrOpen(false);
+                        }}
+                      >
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={onFind}
+              disabled={isPending}
+              style={{ marginTop: 24 }}
+            >
+              Найти
+            </Button>
           </div>
-        </Card>
-      )}
+        )}
+      </Card>
 
       <Modal
         open={deleteId !== null}
@@ -247,8 +290,8 @@ export function HomeScreen(): React.ReactElement {
         }
       >
         <div style={{ fontSize: 15, lineHeight: 1.5, color: 'var(--color-text-secondary)' }}>
-          Набор счетов по этой квартире сохранён на этом устройстве. После удаления блок «Оплатить
-          снова» исчезнет — счета нужно будет добавить заново.
+          Набор счетов по этой квартире сохранён на этом устройстве. После удаления квартира
+          исчезнет из списка — счета нужно будет добавить заново.
         </div>
       </Modal>
 
